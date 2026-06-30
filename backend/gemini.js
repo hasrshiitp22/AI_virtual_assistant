@@ -46,31 +46,29 @@ Output:
   "response": "Playing it now"
 }
 `;
-
-    const result = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
+const result = await axios.post(
+  "https://api.groq.com/openai/v1/chat/completions",
+  {
+    model: "llama-3.1-8b-instant", // or another model available to your account
+    messages: [
       {
-        model: "llama-3.1-8b-instant",
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt
-          },
-          {
-            role: "user",
-            content: command
-          }
-        ],
-        temperature: 0.3
+        role: "system",
+        content: systemPrompt,
       },
       {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
+        role: "user",
+        content: command,
+      },
+    ],
+    temperature: 0.3,
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
     const text = result.data.choices[0].message.content;
 
     return text;

@@ -1,15 +1,24 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { userDataContext } from "../context/UserContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+
 function Home() {
   const { userData, serverUrl, setUserData, getgemini } =
     useContext(userDataContext);
-
+  const [userText, setUserText] = useState("");
+  const [assistantText, setAssistantText] = useState("");
+  const [assistantState, setAssistantState] = useState("listening");
+  const [awake, setAwake] = useState(false);
+const sleepTimer = useRef(null);
   const navigate = useNavigate();
 
-  // Logout
+  const recognitionRef = useRef(null);
+  const isSpeaking = useRef(false);
+  const isProcessing = useRef(false);
+
+  // ---------------- Logout ----------------
   const handleLogout = async () => {
     try {
       await axios.get(`${serverUrl}/api/auth/logout`, {
@@ -18,19 +27,18 @@ function Home() {
 
       setUserData(null);
       navigate("/signin");
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.log(err);
     }
   };
 
-  // Speak Function
-  const speak = (text, recognition) => {
-    if (!text) return;
+  // ---------------- Speak ----------------
+  const speak = (text) => {
+    if (!text) {
+      startListening();
+      return;
+    }
 
-    // STOP listening before speaking
-    recognition.stop();
-
-    // cancel previous speech
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -38,169 +46,198 @@ function Home() {
     utterance.lang = "en-US";
     utterance.rate = 1;
     utterance.pitch = 1;
-    utterance.volume = 1;
+
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice =
+      voices.find((v) => v.lang === "en-US") || voices[0];
 
     utterance.onstart = () => {
-      console.log("Speech started");
+      isSpeaking.current = true;
+      setAssistantState("speaking");
     };
 
-    utterance.onend = () => {
-      console.log("Speech ended");
+   utterance.onend = () => {
+  isSpeaking.current = false;
+  isProcessing.current = false;
 
-      // restart listening after speech
-      recognition.start();
+  setAssistantState("listening");
+
+  resetSleepTimer(); // stay awake
+
+  setTimeout(() => {
+    startListening();
+  }, 300);
+};
+
+    utterance.onerror = () => {
+      isSpeaking.current = false;
+      isProcessing.current = false;
+      startListening();
     };
-
-    utterance.onerror = (e) => {
-      console.log("Speech error:", e.error);
-
-      // restart recognition even on error
-      recognition.start();
-    };
-
-    console.log("speaking:", text);
-
+    recognitionRef.current?.stop();
     window.speechSynthesis.speak(utterance);
+
   };
 
-  // Handle Commands
-  const handleCommand = (data, recognition) => {
-    const { type, userInput, response } = data;
+  // ---------------- Start Listening ----------------
+  const startListening = () => {
+    const recognition = recognitionRef.current;
 
-    // Speak Response
-    if (response) {
-      speak(response, recognition);
-    }
+    if (!recognition) return;
 
-    // Delay actions slightly
-    setTimeout(() => {
-      // Google Search
-      if (type === "google-search") {
-        const query = encodeURIComponent(userInput);
-
-        window.open(
-          `https://www.google.com/search?q=${query}`,
-          "_blank"
-        );
-      }
-
-      // Calculator
-      if (type === "calculator_open") {
-        window.open(
-          `https://www.google.com/search?q=calculator`,
-          "_blank"
-        );
-      }
-
-      // Facebook
-      if (type === "facebook_open") {
-        window.open(
-          "https://www.facebook.com/",
-          "_blank"
-        );
-      }
-
-      // Weather
-      if (type === "weather_open") {
-        window.open(
-          `https://www.google.com/search?q=weather`,
-          "_blank"
-        );
-      }
-
-      // YouTube
-      if (
-        type === "youtube_search" ||
-        type === "youtube_play"
-      ) {
-        const query = encodeURIComponent(userInput);
-
-        window.open(
-          `https://www.youtube.com/results?search_query=${query}`,
-          "_blank"
-        );
-      }
-    }, 1000);
+    try {
+      recognition.start();
+    } catch { }
   };
+   
+  const resetSleepTimer = () => {
+  clearTimeout(sleepTimer.current);
 
-  // Voice Recognition
+  sleepTimer.current = setTimeout(() => {
+    setAwake(false);
+    console.log("😴 Assistant Sleeping");
+  }, 20000); // Sleep after 20 seconds
+};
   useEffect(() => {
     const SpeechRecognition =
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    // Browser support check
     if (!SpeechRecognition) {
-      console.log("Speech Recognition not supported");
+      alert("Speech Recognition is not supported.");
       return;
     }
-
-    // preload voices
-    window.speechSynthesis.getVoices();
-
+    
     const recognition = new SpeechRecognition();
 
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-US";
 
-    const ai_name = (
+    recognitionRef.current = recognition;
+
+    const wakeWord = (
       userData?.assistantName || "alexa"
     ).toLowerCase();
 
     recognition.onstart = () => {
-      console.log("Recognition started");
+      console.log("🎤 Listening...");
+      setAssistantState("listening");
     };
 
     recognition.onend = () => {
-      console.log("Recognition ended");
-    };
-
-    recognition.onerror = (e) => {
-      console.log("Recognition error:", e.error);
-    };
-
-    // User speaks
-    recognition.onresult = async (e) => {
-      const result =
-        e.results[e.results.length - 1];
-
-      if (!result.isFinal) return;
-
-      const transcript = result[0].transcript
-        .trim()
-        .toLowerCase();
-
-      console.log("heard:", transcript);
-
-      // Wake word check
-      if (transcript.includes(ai_name)) {
-        try {
-          const data = await getgemini(transcript);
-
-          console.log("AI:", data);
-
-          handleCommand(data, recognition);
-        } catch (error) {
-          console.log(error);
-        }
+      if (!isSpeaking.current && !isProcessing.current) {
+        setTimeout(startListening, 500);
       }
     };
 
-    // Start listening
-    recognition.start();
+    recognition.onerror = () => {
+      if (!isSpeaking.current && !isProcessing.current) {
+        setTimeout(startListening, 500);
+      }
+    };
+   recognition.onresult = async (event) => {
+  if (isProcessing.current) return;
 
-    // Cleanup
+  const transcript =
+    event.results[event.results.length - 1][0].transcript.trim();
+
+  if (!transcript) return;
+
+  console.log("🎤 You:", transcript);
+
+  setUserText(transcript);
+
+  const wakeWord = (userData?.assistantName || "alexa").toLowerCase();
+
+  const lowerTranscript = transcript.toLowerCase();
+
+  // ---------------- Assistant Sleeping ----------------
+  if (!awake) {
+    if (!lowerTranscript.includes(wakeWord)) {
+      return;
+    }
+
+    setAwake(true);
+    resetSleepTimer();
+
+    // Remove wake word
+    let command = lowerTranscript
+      .replace(wakeWord, "")
+      .trim();
+
+    // User only said wake word
+    if (command === "") {
+      speak("Yes?");
+      return;
+    }
+
+    // User said:
+    // Alexa what's the weather
+    isProcessing.current = true;
+    recognition.stop();
+    setAssistantState("thinking");
+
+    try {
+      const data = await getgemini(command);
+
+      if (data) {
+        setAssistantText(data.response);
+        speak(data.response);
+      } else {
+        speak("Sorry, I couldn't understand.");
+      }
+    } catch (err) {
+      console.log(err);
+      speak("Something went wrong.");
+    }
+
+    return;
+  }
+
+  // ---------------- Assistant Awake ----------------
+
+  resetSleepTimer();
+
+  isProcessing.current = true;
+
+  recognition.stop();
+
+  setAssistantState("thinking");
+
+  try {
+    const data = await getgemini(transcript);
+
+    if (data) {
+      setAssistantText(data.response);
+      speak(data.response);
+    } else {
+      speak("Sorry, I couldn't understand.");
+    }
+  } catch (err) {
+    console.log(err);
+    speak("Something went wrong.");
+  }
+};
+
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
+      .then(() => startListening())
+      .catch((err) => console.log(err));
+
     return () => {
       recognition.stop();
-
       window.speechSynthesis.cancel();
     };
-  }, []);
+  }, [userData]);
 
   return (
     <div className="w-full h-screen bg-black flex justify-center items-center flex-col relative">
-      {/* Logout */}
       <button
         className="absolute top-5 right-5 bg-white px-6 py-2 rounded-full"
         onClick={handleLogout}
@@ -208,7 +245,6 @@ function Home() {
         Log Out
       </button>
 
-      {/* Customize */}
       <button
         className="absolute top-20 right-5 bg-white px-6 py-2 rounded-full"
         onClick={() => navigate("/customize")}
@@ -216,20 +252,58 @@ function Home() {
         Customize
       </button>
 
-      {/* Assistant Image */}
-      <div className="w-[300px] h-[400px] overflow-hidden rounded-xl">
-        <img
+      <div
+        className={`
+    w-[300px] h-[400px]
+    overflow-hidden rounded-xl
+    transition-all duration-500 w-10
+
+    ${assistantState === "listening"
+            ? "ring-4 ring-blue-500 animate-pulse"
+            : ""
+          }
+
+    ${assistantState === "thinking"
+            ? "scale-105 animate-bounce"
+            : ""
+          }
+
+    ${assistantState === "speaking"
+            ? "ring-4 ring-green-500 scale-110"
+            : ""
+          }
+  `}
+      > <img
           src={userData?.assistantImage}
           alt="assistant"
           className="w-full h-full object-cover"
-        />
-      </div>
+        /></div>
 
-      {/* Assistant Name */}
       <h1 className="text-white text-2xl mt-4 font-semibold">
         I'm {userData?.assistantName}
       </h1>
+      <p className="text-gray-300 mt-3 text-lg">
+        {assistantState === "listening" && "🎤 Listening..."}
+        {assistantState === "thinking" && "🤔 Thinking..."}
+        {assistantState === "speaking" && "🗣️ Speaking..."}
+      </p>
+      <div className="w-[90%] max-w-2xl mt-8 space-y-4">
+        {userText && (
+          <div className="bg-gray-800 text-white p-4 rounded-xl">
+            <p className="text-green-400 font-semibold">🎤 You</p>
+            <p>{userText}</p>
+          </div>
+        )}
+
+        {assistantText && (
+          <div className="bg-blue-900 text-white p-4 rounded-xl">
+            <p className="text-blue-300 font-semibold">🤖 Assistant</p>
+            <p>{assistantText}</p>
+          </div>
+        )}
+      </div>
     </div>
+
   );
 }
 
