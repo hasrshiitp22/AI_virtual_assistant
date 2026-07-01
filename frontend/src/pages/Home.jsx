@@ -7,6 +7,7 @@ import axios from "axios";
 function Home() {
   const { userData, serverUrl, setUserData, getgemini } =
     useContext(userDataContext);
+  const [theme, setTheme] = useState("black");
   const [userText, setUserText] = useState("");
   const [assistantText, setAssistantText] = useState("");
   const [assistantState, setAssistantState] = useState("listening");
@@ -31,6 +32,53 @@ const sleepTimer = useRef(null);
       console.log(err);
     }
   };
+
+
+  const performAction = (data) => {
+  switch (data.type) {
+    case "google_search":
+      window.open(
+        `https://www.google.com/search?q=${encodeURIComponent(data.userInput)}`,
+        "_blank"
+      );
+      break;
+
+    case "youtube_search":
+    case "youtube_play":
+      window.open(
+        `https://www.youtube.com/results?search_query=${encodeURIComponent(data.userInput)}`,
+        "_blank"
+      );
+      break;
+
+    case "calculator_open":
+      window.open(
+        "https://www.google.com/search?q=calculator",
+        "_blank"
+      );
+      break;
+
+    case "facebook_open":
+      window.open("https://facebook.com", "_blank");
+      break;
+
+    case "instagram_open":
+      window.open("https://instagram.com", "_blank");
+      break;
+
+    case "weather_show":
+      window.open(
+        `https://www.google.com/search?q=${encodeURIComponent(
+          data.userInput || "weather"
+        )}`,
+        "_blank"
+      );
+      break;
+
+    default:
+      break;
+  }
+};
 
   // ---------------- Speak ----------------
   const speak = (text) => {
@@ -182,6 +230,7 @@ const sleepTimer = useRef(null);
 
       if (data) {
         setAssistantText(data.response);
+        performAction(data);
         speak(data.response);
       } else {
         speak("Sorry, I couldn't understand.");
@@ -237,24 +286,35 @@ const sleepTimer = useRef(null);
   }, [userData]);
 
   return (
-    <div className="w-full h-screen bg-black flex justify-center items-center flex-col relative">
+    <div className={`w-full h-screen bg-${theme} flex justify-center items-center flex-col relative`}>
+    
       <button
-        className="absolute top-5 right-5 bg-white px-6 py-2 rounded-full"
+        className={`absolute top-5 right-5 bg-white border-2 border-${theme == "white" ? "black": "white"} px-8 py-2 rounded-full`}
         onClick={handleLogout}
       >
         Log Out
       </button>
 
       <button
-        className="absolute top-20 right-5 bg-white px-6 py-2 rounded-full"
+        className={`absolute top-20 bg-white right-5 border-2 border-${theme == "white" ? "black": "white"} px-6 py-2 rounded-full`}
         onClick={() => navigate("/customize")}
       >
         Customize
       </button>
+    
+      <button className={`${theme === "black" ? "bg-white text-black": "bg-black text-white"} absolute  rounded-3xl px-8 py-2 rounded-full m-2 top-10 left-0`} onClick={
+        ()=>{
+          if(theme=='black'){
+            setTheme('white');
+          }else{
+             setTheme('black');
+          }
+        }
+      }> {theme == "black" ? "🌞 Light Mode" : "🌙 Dark Mode"}</button>
 
       <div
         className={`
-    w-[300px] h-[400px]
+    w-[300px] h-[360px]
     overflow-hidden rounded-xl
     transition-all duration-500 w-10
 
@@ -279,10 +339,10 @@ const sleepTimer = useRef(null);
           className="w-full h-full object-cover"
         /></div>
 
-      <h1 className="text-white text-2xl mt-4 font-semibold">
+      <h1 className={`${theme === "white" ? " text-black": " text-white"} text-2xl mt-4 font-semibold`}>
         I'm {userData?.assistantName}
       </h1>
-      <p className="text-gray-300 mt-3 text-lg">
+      <p className={`${theme === "white" ? " text-black": " text-white"} mt-3 text-lg`}>
         {assistantState === "listening" && "🎤 Listening..."}
         {assistantState === "thinking" && "🤔 Thinking..."}
         {assistantState === "speaking" && "🗣️ Speaking..."}
