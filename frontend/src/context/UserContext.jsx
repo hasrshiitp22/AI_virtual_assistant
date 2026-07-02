@@ -12,7 +12,6 @@ function UserContext({ children }) {
   const [backendImage, setbackendImage] = useState(null)
   const [SelectedImage, setSelectedImage] = useState(null)
 
-  // ✅ GET CURRENT USER
   const handleCurrentUser = async () => {
     try {
       const result = await axios.get(
@@ -28,11 +27,9 @@ function UserContext({ children }) {
     }
   }
 
-  // ✅ GEMINI CALL
   const getgemini = async (command) => {
     try {
 
-      // 🔥 FIX 1: prevent bad request
       if (!command || typeof command !== "string") {
         console.log("Invalid prompt:", command)
         return
@@ -49,7 +46,7 @@ function UserContext({ children }) {
       return result.data
 
     } catch (error) {
-      // 🔥 FIX 2: better debug
+    
       console.log("GEMINI FRONTEND ERROR:", error.response?.data || error.message)
     }
   }
