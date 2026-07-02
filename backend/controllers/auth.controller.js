@@ -40,21 +40,20 @@ export const LogIn=async (req,res) => {
          if(password.length<6){
             return  res.status(400).json({message:"password must be 6 char"});
          }
-         const pass_match=await bcrypt.compare(password,user.password)
+         const pass_match=await bcrypt.compare(password,existEmail.password)
 
          if(!pass_match){
             return res.status(400).json({message:"incorrect match"})
          }
       
-         const token= await genToken(user._id)
+         const token= await genToken(existEmail._id)
          res.cookie("token",token,{
            httpOnly:true,
            maxAge:7*24*60*60*1000,
-           samsite:"strict",
+           samSite:"strict",
            secure:false
          })
-         return res.status(200).json(user)
-
+         return res.status(200).json(existEmail);
     } catch (error) {
         return res.status(500).json({mess:`login error ${error}`})
     }
