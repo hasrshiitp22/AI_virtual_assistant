@@ -9,7 +9,9 @@ const connectDb=async ()=>{
     }
     catch(error)
     {
-      console.log("db connection error")
+     console.error("❌ DB Connection Error:", err.message);
+    console.error(err);
+    process.exit(1);
     }
 }
 
