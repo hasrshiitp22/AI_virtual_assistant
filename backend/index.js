@@ -9,12 +9,19 @@ import userRouter from "./routes/user.routes.js";
 import geminiResponse from "./gemini.js";
 const app=express();
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "https://harshiitp22-aivirtualassistant.vercel.app",
-        "https://harshiitp22-aivirtualassistant-3e1xii5pv-hasrshiitp22s-projects.vercel.app"
-    ],
-    credentials: true
+  origin: function (origin, callback) {
+    if (
+      !origin ||
+      origin === "http://localhost:5173" ||
+      origin === "https://harshiitp22-aivirtualassistant.vercel.app" ||
+      origin.endsWith(".vercel.app")
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
 }));
 const port=process.env.PORT||5000
 
