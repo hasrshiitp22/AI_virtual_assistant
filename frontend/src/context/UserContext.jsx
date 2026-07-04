@@ -5,8 +5,8 @@ export const userDataContext = createContext()
 
 function UserContext({ children }) {
 
-  const serverUrl = "http://localhost:8000"
-
+  const serverUrl = "https://ai-virtual-assistant-r1yt.onrender.com";
+  
   const [userData, setUserData] = useState(null)
   const [frontendImage, setfrontendImage] = useState(null)
   const [backendImage, setbackendImage] = useState(null)
