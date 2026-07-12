@@ -289,20 +289,20 @@ const sleepTimer = useRef(null);
     <div className={`w-full h-screen bg-${theme} flex justify-center items-center flex-col relative`}>
     
       <button
-        className={`absolute top-5 right-5 bg-white mx-2  border-2 border-${theme == "white" ? "black": "white"} px-8 py-2 rounded-full`}
+        className={`absolute top-5 right-5 bg-white mx-20 mt-20  border-2 border-${theme == "white" ? "black": "white"} px-8 py-2 rounded-full`}
         onClick={handleLogout}
       >
         Log Out
       </button>
 
       <button
-        className={`absolute top-20 bg-white mx-2 right-5 border-2 border-${theme == "white" ? "black": "white"} px-6 py-2 rounded-full`}
+        className={`absolute top-20 bg-white mx-20 right-5 mt-20 border-2 border-${theme == "white" ? "black": "white"} px-6 py-2 rounded-full`}
         onClick={() => navigate("/customize")}
       >
         Customize
       </button>
     
-      <button className={`${theme === "black" ? "bg-white text-black": "bg-black text-white"} absolute mx-3 rounded-3xl px-8 py-2 rounded-full m-2 top-10 left-0`} onClick={
+      <button className={`${theme === "black" ? "bg-white text-black": "bg-black text-white"} absolute mx-30 rounded-3xl px-8 py-2 rounded-full m-2 top-10 left-0`} onClick={
         ()=>{
           if(theme=='black'){
             setTheme('white');
