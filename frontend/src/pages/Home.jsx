@@ -296,7 +296,7 @@ const sleepTimer = useRef(null);
       </button>
 
       <button
-        className={`absolute top-15 bg-white  right-10 mt-35 border-2 border-${theme == "white" ? "black": "white"} px-6 py-2 rounded-full`}
+        className={`absolute top-15 bg-white  right-10 mt-10 border-2 border-${theme == "white" ? "black": "white"} px-6 py-2 rounded-full`}
         onClick={() => navigate("/customize")}
       >
         Customize
