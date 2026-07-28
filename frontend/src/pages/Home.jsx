@@ -61,6 +61,12 @@ const sleepTimer = useRef(null);
     case "facebook_open":
       window.open("https://facebook.com", "_blank");
       break;
+    case "calculator_open":
+      window.open(
+        "https://leetcode.com/problemset",
+        "_blank"
+      );
+      break;
 
     case "instagram_open":
       window.open("https://instagram.com", "_blank");
